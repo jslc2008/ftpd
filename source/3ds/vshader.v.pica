@@ -1,0 +1,41 @@
+; Example PICA200 vertex shader
+
+; Uniforms
+.fvec proj[4]
+
+; Constants
+.constf constants(1.0, 0.0, 0.00392156862745, 0.0)
+
+; Outputs
+.out outPos   position
+.out outUv    texcoord0
+.out outColor color
+
+; Inputs (defined as aliases for convenience)
+.alias inPos   v0
+.alias inUv    v1
+.alias inColor v2
+
+.proc main
+	; Force inPos.z = 0.0, inPos.w = 1.0
+	mov r0.xy, inPos.xy
+	mov r0.zw, constants.yx
+
+	; outPos = proj * inPos
+	dp4 outPos.x, proj[0], r0
+	dp4 outPos.y, proj[1], r0
+	dp4 outPos.z, proj[2], r0
+	dp4 outPos.w, proj[3], r0
+
+	; outUv = inUv
+	mov outUv, inUv
+
+	; normalize inColor
+	mul r1, constants.zzzz, inColor
+
+	; outColor = inColor
+	mov outColor, r1
+
+	; We're finished
+	end
+.end
