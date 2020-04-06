@@ -16,6 +16,7 @@
 using namespace std::chrono_literals;
 
 #ifndef _3DS
+/// \todo Investigate multithreading on 3DS
 #define MULTITHREADED 1
 #else
 #define MULTITHREADED 0
@@ -23,17 +24,24 @@ using namespace std::chrono_literals;
 
 namespace
 {
-auto const s_startTime = std::chrono::system_clock::to_time_t (std::chrono::system_clock::now ());
+/// \brief Application start time
+auto const s_startTime = std::time (nullptr);
+
+/// \brief Mutex for s_freeSpace
 platform::Mutex s_lock;
+
+/// \brief Free space string
 std::string s_freeSpace;
 }
 
 ///////////////////////////////////////////////////////////////////////////
 FtpServer::~FtpServer ()
 {
+#if MULTITHREADED
 	m_quit = true;
 
 	m_thread.join ();
+#endif
 }
 
 FtpServer::FtpServer (std::uint16_t const port_)
@@ -98,6 +106,7 @@ void FtpServer::draw ()
 	ImGui::Separator ();
 
 #ifdef _3DS
+	// Fill rest of top screen window
 	ImGui::BeginChild ("Logs", ImVec2 (0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 #else
 	ImGui::BeginChild ("Logs", ImVec2 (0, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
@@ -194,6 +203,7 @@ void FtpServer::handleStopButton ()
 void FtpServer::loop ()
 {
 	{
+		// poll listen socket
 		auto const lock = std::scoped_lock (m_lock);
 		if (m_socket)
 		{
@@ -207,6 +217,7 @@ void FtpServer::loop ()
 		}
 	}
 
+	// remove dead sessions
 	for (auto it = std::begin (m_sessions); it != std::end (m_sessions);)
 	{
 		auto const &session = *it;
@@ -216,9 +227,11 @@ void FtpServer::loop ()
 			++it;
 	}
 
+	// poll sessions
 	if (!m_sessions.empty ())
 		FtpSession::poll (m_sessions);
 #if MULTITHREADED
+	// avoid busy polling in background thread
 	else
 		platform::Thread::sleep (16ms);
 #endif
@@ -226,6 +239,7 @@ void FtpServer::loop ()
 
 void FtpServer::threadFunc ()
 {
+	// bind log for this thread
 	Log::bind (m_log);
 
 	while (!m_quit)

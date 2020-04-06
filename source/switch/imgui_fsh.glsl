@@ -13,6 +13,7 @@ layout (location = 0) out vec4 outColor;
 
 void main()
 {
+	// font texture is single-channel (alpha)
 	if (ubo.font != 0)
 	    outColor = vtxColor * vec4 (vec3 (1.0), texture (tex, vtxUv).r);
 	else

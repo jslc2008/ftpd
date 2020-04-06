@@ -3,9 +3,11 @@
 #include <unistd.h>
 
 #ifndef NDEBUG
+/// \brief nxlink socket fd
 static int s_fd = -1;
 #endif
 
+/// \brief Socket initialization configuration
 static SocketInitConfig const s_socketInitConfig = {
     .bsdsockets_version = 1,
 
@@ -23,10 +25,13 @@ static SocketInitConfig const s_socketInitConfig = {
     .bsd_service_type = BsdServiceType_User,
 };
 
+/// \brief Number of FS sessions
 u32 __nx_fs_num_sessions = 3;
 
+/// \brief Called before main ()
 void userAppInit ()
 {
+	// disable immediate app close
 	appletLockExit ();
 
 	romfsInit ();

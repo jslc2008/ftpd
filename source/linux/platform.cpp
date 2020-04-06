@@ -16,8 +16,13 @@
 
 namespace
 {
+/// \brief GLFW main window
 std::unique_ptr<GLFWwindow, void (*) (GLFWwindow *)> s_mainWindow (nullptr, glfwDestroyWindow);
 
+/// \brief Window resize callback
+/// \param window_ GLFW window
+/// \param width_ New window width
+/// \param height_ New window height
 void windowResize (GLFWwindow *const window_, int const width_, int const height_)
 {
 	(void)window_;
@@ -29,6 +34,13 @@ void windowResize (GLFWwindow *const window_, int const width_, int const height
 }
 
 #ifndef NDEBUG
+/// \brief GL log callback
+/// \param source_ Message source
+/// \param type_ Message type
+/// \param id_ Message id
+/// \param severity_ Message severity
+/// \param length_ Message length
+/// \param userParam_ User parameter
 void logCallback (GLenum const source_,
     GLenum const type_,
     GLuint const id_,
@@ -43,19 +55,21 @@ void logCallback (GLenum const source_,
 	(void)severity_;
 	(void)length_;
 	(void)userParam_;
-	// std::fprintf (stderr, "%s\n", message_);
+	std::fprintf (stderr, "%s\n", message_);
 }
 #endif
 }
 
 bool platform::init ()
 {
+	// initialize GLFW
 	if (!glfwInit ())
 	{
 		std::fprintf (stderr, "Failed to initialize GLFW\n");
 		return false;
 	}
 
+	// use OpenGL 4.3 Core Profile
 	glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -67,6 +81,7 @@ bool platform::init ()
 	glfwWindowHint (GLFW_DEPTH_BITS, 24);
 	glfwWindowHint (GLFW_STENCIL_BITS, 8);
 
+	// create GLFW window
 	s_mainWindow.reset (glfwCreateWindow (1280, 720, "Test Game", nullptr, nullptr));
 	if (!s_mainWindow)
 	{
@@ -75,12 +90,14 @@ bool platform::init ()
 		return false;
 	}
 
+	// enable vsync
 	glfwSwapInterval (1);
 
 	// create context
 	glfwMakeContextCurrent (s_mainWindow.get ());
 	glfwSetFramebufferSizeCallback (s_mainWindow.get (), windowResize);
 
+	// load OpenGL
 	if (!gladLoadGL ())
 	{
 		std::fprintf (stderr, "gladLoadGL: failed\n");
@@ -114,12 +131,10 @@ bool platform::init ()
 	std::printf ("Renderer:       %s\n", glGetString (GL_RENDERER));
 	std::printf ("OpenGL Version: %s\n", glGetString (GL_VERSION));
 
-	IMGUI_CHECKVERSION ();
-	ImGui::CreateContext ();
-
 	ImGui_ImplGlfw_InitForOpenGL (s_mainWindow.get (), true);
 	ImGui_ImplOpenGL3_Init ("#version 150");
 
+	// disable imgui.ini file
 	ImGuiIO &io    = ImGui::GetIO ();
 	io.IniFilename = nullptr;
 
@@ -149,10 +164,6 @@ void platform::render ()
 {
 	ImGui::Render ();
 
-	int width;
-	int height;
-	glfwGetFramebufferSize (s_mainWindow.get (), &width, &height);
-	glViewport (0, 0, width, height);
 	glClearColor (0.45f, 0.55f, 0.60f, 1.00f);
 	glClear (GL_COLOR_BUFFER_BIT);
 
@@ -163,22 +174,24 @@ void platform::render ()
 
 void platform::exit ()
 {
-	ImGui::DestroyContext ();
-
 	s_mainWindow.reset ();
 	glfwTerminate ();
 }
 
 ///////////////////////////////////////////////////////////////////////////
+/// \brief Platform thread pimpl
 class platform::Thread::privateData_t
 {
 public:
 	privateData_t () = default;
 
+	/// \brief Parameterized constructor
+	/// \param func_ Thread entry point
 	privateData_t (std::function<void ()> func_) : thread (func_)
 	{
 	}
 
+	/// \brief Underlying thread object
 	std::thread thread;
 };
 
@@ -215,9 +228,11 @@ void platform::Thread::sleep (std::chrono::milliseconds const timeout_)
 }
 
 ///////////////////////////////////////////////////////////////////////////
+/// \brief Platform mutex pimpl
 class platform::Mutex::privateData_t
 {
 public:
+	/// \brief Underlying mutex
 	std::mutex mutex;
 };
 
